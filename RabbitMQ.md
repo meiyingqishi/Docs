@@ -1,9 +1,27 @@
 # RabbitMQ 分享
 
 ## 1 内容列表
-- [1. 内容列表](#1-内容列表)
-- [2. 什么是消息队列](#2-什么是消息队列)
-- [3. 为什么会有消息队列](#3-为什么要有消息队列)
+- [1 内容列表](#1-内容列表)
+- [2 什么是消息队列?](#2-什么是消息队列)
+- [3 为什么会有消息队列?](#3-为什么要有消息队列)
+- [4 消息队列产生前都是怎样玩的?](#4-消息队列产生前都是怎样玩的)
+- [5 什么是RabbitMQ?](#5-什么是RabbitMQ)
+- [6 为什么会有RabbitMQ?](#6-为什么会有RabbitMQ)
+	- [6.1 救世主AMQP](#6.1-救世主AMQP)
+	- [6.2 RabbitMQ简史](#6.2-RabbitMQ简史)
+- [7 如何选择消息队列?](#7-如何选择消息队列)
+	- [7.1 RabbitMQ](#7.1-RabbitMQ)
+	- [7.2 RocketMQ](#7.2-RocketMQ)
+	- [7.3 Kafka](#7.3-Kafka)
+	- [7.4 总结](#7.4-总结)
+- [8 消息对列模型](#8-消息对列模型)
+	- [8.1 队列模型](#8.1-队列模型)
+	- [8.2 发布订阅模型](#8.2-发布订阅模型)
+- [9 如何确保消息不会丢失?](#9-如何确保消息不会丢失)
+- [10 如何处理消费过程中的重复消息?](#10-如何处理消费过程中的重复消息)
+- [11 消息积压了该如何处理?](#11-消息积压了该如何处理)
+- [12 实现消息队列的一些技术](#12-实现消息队列的一些技术)
+- [13 RabbitMQ基本操作](#13-RabbitMQ基本操作)
 
 ## 2 什么是消息队列？
 消息排队允许应用程序通过相互发送消息进行通信。当目标程序繁忙或未连接时，消息队列将提供临时消息存储[1]。
@@ -44,7 +62,7 @@ RabbitMQ是一个免费的，开源的，可扩展的消息队列解决方案。
 
 通过这一系列的革新，消息队列软件主要留住了大型机构，它们需要可靠性、解耦以及实时消息通信。为什么MQ不去寻找更大的市场呢？它是如何度过20世纪90年代网络泡沫的呢？毕竟，从Twitter到Salesforce.com，当今所有的这些企业都在努力创建内部方案来解决25年前TIB就已经解决的PubSub问题。一句话：供应商壁垒。商业MQ供应商想要解决应用互通的问题，而不是去创建标准的接口来允许不同的MQ产品互通，或者（但愿不是这样）允许应用程序来更改MQ平台。供应商壁垒维持着足够搞得价格和利润率，并使得这些商业MQ软件对那些当今繁荣昌盛的初创公司Web 2.0公司来说遥不可及。
 
-结果，中小技术公司并不是唯一一个对高价格MQ供应商感到不满的。那些早就MQ产业的金融服务公司对此也激动不起来。越是大型的金融公司越不可避免地使用来自众多供应商的MQ产品，来服务企业内部的不同应用。如果应用已经订阅了TIBCO MQ信息，若突然需要消费者来自IBM MQ的消息，则实现起来会非常困难。这些产品使用不同的API、不同协议，因而毫无疑问无法联合起来组成单一的总线。为了解决这个问题，Java Message Service(JMS)在2001年诞生了。JMS试图通过公共Java API的方式，隐藏单独MQ产品供应商提供的实际接口，从而跨越了壁垒和解决了互通问题。从技术上讲，Java应用程序只需针对JMS API编程，选择合适的MQ驱动即可。JMS会打理好其他部分。问题是你在尝试使用单独的标准化接口来胶合众多不同的接口。这就像是不同类型的衣服黏在一起：缝合处终究会裂开，真相会暴露出来。使用JMS的应用程序会变得更加脆弱。我们需要新的消息通信标准化方案[5]。
+结果，中小技术公司并不是唯一一个对高价格MQ供应商感到不满的。那些早就MQ产业的金融服务公司对此也激动不起来。越是大型的金融公司越不可避免地使用来自众多供应商的MQ产品，来服务企业内部的不同应用。如果应用已经订阅了TIBCO MQ信息，若突然需要消费者来自IBM MQ的消息，则实现起来会非常困难。这些产品使用不同的API、不同协议，因而毫无疑问无法联合起来组成单一的总线。为了解决这个问题，Java Message Service(JMS)在2001年诞生了。JMS试图通过公共Java API的方式，隐藏单独MQ产品供应商提供的实际接口，从而跨越了壁垒和解决了互通问题。从技术上讲，Java应用程序只需针对JMS API编程，选择合适的MQ驱动即可。JMS会打理好其他部分。问题是你在尝试使用单独的标准化接口来胶合众多不同的接口。这就像是不同类型的衣服黏在一起：缝合处终究会裂开，真相会暴露出来。使用JMS的应用程序会变得更加脆弱。我们需要新的消息通信标准化方案。
 
 ### 6.1 救世主AMQP
 2004年，JPMorgan Chase需要一个更好的消息通信解决方案，并开始和iMatix公司一起合作开发Advanced Message Queuing Protocol。AMQP从一开始就设计成开放标准，已解决众多的消息队列需求和拓扑结构问题。凭借开放，任何人都可以执行这一标准，针对标准编码的任何人都可以和任意AMQP供应商提供的MQ服务器进行交互。
@@ -295,10 +313,19 @@ Kafka 的消息模型和 RocketMQ 是完全一样的，上面讲的所有 Rocket
 	- ZeroCopy：零拷贝技术。
 	- 用硬件同步原语（CAS、FAA）替代锁。
 	- 数据压缩（ZIP，GZIP，SNAPPY，LZ4）。
+	
+## 13 RabbitMQ基本操作
+
+- 官网：https://www.rabbitmq.com
+- 安装：https://www.rabbitmq.com/download.html
+- 常规教程：https://www.rabbitmq.com/getstarted.html
+- 与Spring boot集成的相关参考资源：
+	+ https://spring.io/guides/gs/messaging-rabbitmq
+	+ https://docs.spring.io/spring-amqp/docs/current/reference/html
+	+ 使用例子：https://github.com/spring-projects/spring-amqp-samples
 
 ## 参考
 * [1] https://www.cloudamqp.com/blog/2014-12-03-what-is-message-queuing.html
 * [2] https://aws.amazon.com/cn/message-queue/
 * [3] https://aws.amazon.com/message-queue/benefits/#:~:text=Message%20queues%20enable%20asynchronous%20communication,only%20when%20they%20are%20available.
 * [4] https://www.erlang-solutions.com/blog/an-introduction-to-rabbitmq-what-is-rabbitmq/
-* [5] 《RabbitMQ in Action》
